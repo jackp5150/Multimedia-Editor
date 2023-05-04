@@ -5,6 +5,9 @@ from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QIcon, QPalette, QImage, QBrush, QMouseEvent, QPixmap
 from PyQt5 import QtMultimediaWidgets
 from PyQt5.QtGui import QPainter
+from moviepy.editor import VideoFileClip
+import random
+
 
 
 class Timeline(QGraphicsView):
@@ -16,15 +19,23 @@ class Timeline(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
         self.setRenderHint(QPainter.SmoothPixmapTransform)
         self.setRenderHint(QPainter.TextAntialiasing)
+        
+        brush = QBrush(Qt.gray)
+        self.setBackgroundBrush(brush)
 
     def display_frames(self, frames):
         self.scene().clear()
+        scale_factor = 0.1  # Adjust this value to change the size of the frames in the timeline
+        spacing = .1  # Adjust this value to change the spacing between the frames
         for i, frame in enumerate(frames):
-            pixmap = QPixmap.fromImage(frame)
+            pixmap = QPixmap.fromImage(frame).scaledToWidth(int(frame.width() * scale_factor))
             item = QGraphicsPixmapItem(pixmap)
-            item.setPos(QPointF(i * (pixmap.width() + 2), 0))
+            item.setPos(QPointF(i * (pixmap.width() + spacing), 0))
             self.scene().addItem(item)
         self.setSceneRect(QRectF(self.scene().itemsBoundingRect()))
+
+
+
 
 class VideoEditorWindow(QMainWindow):
     def __init__(self):
@@ -40,7 +51,7 @@ class VideoEditorWindow(QMainWindow):
         command = f'ffmpeg -i "{video_path}" -vf fps={frame_rate} frame_%04d.png'
         os.system(command)
         frames = []
-        for file in sorted(os.listdir()):
+        for file in sorted([f for f in os.listdir() if f.startswith("frame_") and f.endswith(".png")], key=lambda x: int(x.split("_")[1].split(".")[0])):
             if file.startswith("frame_") and file.endswith(".png"):
                 frame = QImage(file)
                 frames.append(frame)
@@ -49,7 +60,7 @@ class VideoEditorWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Video Editor")
-        self.setFixedSize(900, 500)
+        self.setFixedSize(1200, 800)  # Increased the window size
         self.setWindowIcon(QIcon('icon.png'))
 
         palette = QPalette()
@@ -118,15 +129,15 @@ class VideoEditorWindow(QMainWindow):
         self.videoWidget = QtMultimediaWidgets.QVideoWidget(self)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.videoWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.videoWidget.setFixedSize(800, 450)  # Set a fixed size for the video widget
         vbox.addWidget(self.videoWidget)
-
-        self.timeline = Timeline(self)
-        self.timeline.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        vbox.addWidget(self.timeline)
 
         central_widget = QWidget()
         central_widget.setLayout(vbox)
         self.setCentralWidget(central_widget)
+
+        self.timeline = Timeline(self)
+        vbox.addWidget(self.timeline, stretch=1)
 
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
@@ -135,17 +146,34 @@ class VideoEditorWindow(QMainWindow):
 
 
 
+
+
     def openFile(self):
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
-        fileName, _ = QFileDialog.getOpenFileName(self, "Open Video", QDir.homePath(), "Video Files (*.mp4 *.avi *.mkv *.wmv *.mov *.flv *.webm)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open Movie", QDir.homePath(), "Videos (*.mp4 *.avi *.wmv)", options=options)
         if fileName != '':
+            self.playlist.clear()
             self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(fileName)))
-            self.mediaPlayer.setPlaylist(self.playlist)
-            self.mediaPlayer.pause()  # pause the video to show the first frame
-            frames = self.generate_frames(fileName)
-            self.timeline.display_frames(frames)
+            self.playlist.setCurrentIndex(0)
             self.mediaPlayer.play()
+            
+            # Extract frames and display them in the timeline
+            frames = self.generate_frames_moviepy(fileName)
+            self.timeline.display_frames(frames)
+
+    def generate_frames_moviepy(self, video_path, frame_rate=2):
+        clip = VideoFileClip(video_path)
+        frames = []
+        step = max(int(1/frame_rate), 1)  # Fix for the step value in the range() function
+        for t in range(0, int(clip.duration), step):
+            frame = clip.get_frame(t)
+            qimage = QImage(frame.tobytes(), frame.shape[1], frame.shape[0], QImage.Format_RGB888)
+            frames.append(qimage)
+        return frames
+
+
+
 
     def play(self):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
