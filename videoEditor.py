@@ -1,11 +1,13 @@
 import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QSlider, QStyle, QSizePolicy, QFrame, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QSlider, QStyle, QSizePolicy, QFrame, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QSpacerItem
 from PyQt5.QtCore import Qt, QUrl, QDir, QSize, QRectF, QPointF
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
 from PyQt5.QtGui import QIcon, QPalette, QImage, QBrush, QMouseEvent, QPixmap
 from PyQt5 import QtMultimediaWidgets
 from PyQt5.QtGui import QPainter
 from moviepy.editor import VideoFileClip
+from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGraphicsItem
+
 import random
 
 
@@ -19,20 +21,38 @@ class Timeline(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
         self.setRenderHint(QPainter.SmoothPixmapTransform)
         self.setRenderHint(QPainter.TextAntialiasing)
-        
-        brush = QBrush(Qt.gray)
+
+        brush = QBrush(Qt.black)  # changed the background color to black
         self.setBackgroundBrush(brush)
+
+        self.setFrameStyle(QFrame.NoFrame)  # removed the frame around the timeline
+
 
     def display_frames(self, frames):
         self.scene().clear()
-        scale_factor = 0.1  # Adjust this value to change the size of the frames in the timeline
-        spacing = .1  # Adjust this value to change the spacing between the frames
-        for i, frame in enumerate(frames):
-            pixmap = QPixmap.fromImage(frame).scaledToWidth(int(frame.width() * scale_factor))
+        width = self.width()
+        height = self.height() / 2
+        frame_count = len(frames)
+        if frame_count == 0:
+            return
+        frame_width = int((width + frame_count - 1) / frame_count)
+        x_offset = 0
+        for frame in frames:
+            pixmap = QPixmap.fromImage(frame).scaled(frame_width, int(height))
             item = QGraphicsPixmapItem(pixmap)
-            item.setPos(QPointF(i * (pixmap.width() + spacing), 0))
+            item.setPos(QPointF(x_offset, 0))
+            item.setFlag(QGraphicsItem.ItemIsSelectable, True)
+            item.setFlag(QGraphicsItem.ItemIsMovable, True)
+            item.setData(Qt.UserRole, x_offset)
+            item.setScale(1.0)
+            item.setOpacity(1.0)
             self.scene().addItem(item)
+            x_offset += frame_width
         self.setSceneRect(QRectF(self.scene().itemsBoundingRect()))
+
+
+
+
 
 
 
@@ -130,13 +150,22 @@ class VideoEditorWindow(QMainWindow):
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.videoWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.videoWidget.setFixedSize(800, 450)  # Set a fixed size for the video widget
-        vbox.addWidget(self.videoWidget)
+
+        # Add horizontal spacers on both sides of the video widget
+        hbox_video = QHBoxLayout()
+        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        hbox_video.addWidget(self.videoWidget)
+        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        vbox.addLayout(hbox_video)
+
 
         central_widget = QWidget()
         central_widget.setLayout(vbox)
         self.setCentralWidget(central_widget)
 
         self.timeline = Timeline(self)
+        self.timeline.setFixedHeight(int(self.height() / 6))
         vbox.addWidget(self.timeline, stretch=1)
 
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
