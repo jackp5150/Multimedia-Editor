@@ -37,7 +37,7 @@ class VideoEditorWindow(QMainWindow):
     def generate_frames(self, video_path):
     # You can change the frame_rate to get more or less frames
         frame_rate = 1
-        command = f"ffmpeg -i {video_path} -vf fps={frame_rate} frame_%04d.png"
+        command = f'ffmpeg -i "{video_path}" -vf fps={frame_rate} frame_%04d.png'
         os.system(command)
         frames = []
         for file in sorted(os.listdir()):
@@ -55,8 +55,6 @@ class VideoEditorWindow(QMainWindow):
         palette = QPalette()
         palette.setBrush(QPalette.Background, QBrush(QImage("background.jpg")))
         self.setPalette(palette)
-
-        self.mediaPlayer.setVideoOutput(QtMultimediaWidgets.QVideoWidget(self))
 
         openButton = QPushButton('Open', self)
         openButton.setFixedWidth(80)
@@ -117,20 +115,22 @@ class VideoEditorWindow(QMainWindow):
         vbox.addLayout(hbox1)
         vbox.addLayout(hbox2)
 
-        videoLayout = QVBoxLayout()
-        videoWidget = QtMultimediaWidgets.QVideoWidget(self)
-        videoLayout.addWidget(videoWidget)
-        vbox.addLayout(videoLayout)
+        self.videoWidget = QtMultimediaWidgets.QVideoWidget(self)
+        self.mediaPlayer.setVideoOutput(self.videoWidget)
+        self.videoWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        vbox.addWidget(self.videoWidget)
+
+        self.timeline = Timeline(self)
+        self.timeline.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        vbox.addWidget(self.timeline)
 
         central_widget = QWidget()
         central_widget.setLayout(vbox)
         self.setCentralWidget(central_widget)
 
-        self.timeline = Timeline(self)
-        vbox.addWidget(self.timeline)
-
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
+
 
 
 
