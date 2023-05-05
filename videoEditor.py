@@ -41,18 +41,22 @@ class Timeline(QGraphicsView):
     def move_arrow_while_playing(self, position):
         if not self.playing:
             return
-        video_duration = self.video_editor_window.mediaPlayer.duration()
+        video_duration = self.video_editor.mediaPlayer.duration()  # change to self.video_editor
         arrow_position = (position / video_duration) * (self.scene().width() - 1)
-        self.move_arrow(arrow_position - self.arrow_position)
+        dx = arrow_position - self.arrow_position
+        self.move_arrow(dx)
         self.arrow_position = arrow_position
+
 
     def play(self):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
             self.timeline.stop()
         else:
+            self.playing = True
             self.mediaPlayer.play()
-            self.timeline.play()
+            # self.timeline.play()
+
 
 
     def next_frame(self):
@@ -134,9 +138,10 @@ class BlueArrow(QGraphicsPixmapItem):
 
     def update_video_position(self, x):
         num_images = len(self.timeline.scene().items()) - 1  # Subtract 1 to exclude the BlueArrow item
-        video_duration = self.video_editor_window.mediaPlayer.duration()
+        video_duration = self.video_editor.mediaPlayer.duration()  # change to self.video_editor
         video_position = int((x / (self.timeline.scene().width() - self.pixmap().width())) * video_duration)
-        self.video_editor_window.setPosition(video_position)
+        self.video_editor.setPosition(video_position)  # change to self.video_editor
+
 
     # change
     def mouseMoveEvent(self, event):
@@ -269,6 +274,7 @@ class VideoEditorWindow(QMainWindow):
         vbox.addWidget(self.timeline, stretch=1)
 
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
+        self.mediaPlayer.positionChanged.connect(self.timeline.move_arrow_while_playing)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.stateChanged.connect(self.toggle_play_pause_button)
 
@@ -311,7 +317,7 @@ class VideoEditorWindow(QMainWindow):
 
 
     def play(self):
-        self.timeline.play()
+        self.timeline.playing = not self.timeline.playing
 
 
     def stop_playing(self):
