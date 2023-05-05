@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, 
 from PyQt5.QtCore import QTimer
 
 
+
 import random
 
 
@@ -39,8 +40,6 @@ class Timeline(QGraphicsView):
         arrow.setPos(QPointF(new_pos, -arrow.pixmap().height()))
 
     def move_arrow_while_playing(self, position):
-        if not self.playing:
-            return
         video_duration = self.video_editor.mediaPlayer.duration()
         if video_duration == 0:
             return
@@ -146,16 +145,37 @@ class BlueArrow(QGraphicsPixmapItem):
 
     def update_video_position(self, x):
         num_images = len(self.timeline.scene().items()) - 1  # Subtract 1 to exclude the BlueArrow item
-        video_duration = self.video_editor.mediaPlayer.duration()  # change to self.video_editor
+        video_duration = self.video_editor.mediaPlayer.duration()
         video_position = int((x / (self.timeline.scene().width() - self.pixmap().width())) * video_duration)
-        self.video_editor.setPosition(video_position)  # change to self.video_editor
+        self.video_editor.setPosition(video_position)
 
-
-    # change
     def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton:
+            # Calculate the new x position while keeping the y position constant
+            new_pos = event.scenePos()
+            x = new_pos.x()
+            x = min(max(x, 0), self.timeline.scene().width() - self.pixmap().width())
+
+            # Update arrow position and video position
+            self.setPos(QPointF(x, -self.pixmap().height()))
+            self.update_video_position(x)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event):
         if self.timeline.playing:
             return
-        super().mouseMoveEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.drag_start_x = event.pos().x()
+            self.drag_start_y = event.pos().y()
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        if self.timeline.playing:
+            return
+        if event.button() == Qt.LeftButton:
+            event.accept()
 
 
 
