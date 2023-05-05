@@ -41,11 +41,19 @@ class Timeline(QGraphicsView):
     def move_arrow_while_playing(self, position):
         if not self.playing:
             return
-        video_duration = self.video_editor.mediaPlayer.duration()  # change to self.video_editor
+        video_duration = self.video_editor.mediaPlayer.duration()
+        if video_duration == 0:
+            return
         arrow_position = (position / video_duration) * (self.scene().width() - 1)
-        dx = arrow_position - self.arrow_position
-        self.move_arrow(dx)
+        self.move_arrow(arrow_position - self.arrow_position)
         self.arrow_position = arrow_position
+
+
+
+    def start_arrow_movement(self):
+        self.arrow_position = 0
+        self.playing = True
+
 
 
     def play(self):
@@ -302,6 +310,8 @@ class VideoEditorWindow(QMainWindow):
             frame_rate = 2
             frames = self.generate_frames_moviepy(fileName, frame_rate)
             self.timeline.display_frames(frames, frame_rate)
+            self.timeline.start_arrow_movement()
+
 
     def generate_frames_moviepy(self, video_path, frame_rate=2):
         clip = VideoFileClip(video_path)
