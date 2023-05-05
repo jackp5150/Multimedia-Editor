@@ -327,7 +327,12 @@ class VideoEditorWindow(QMainWindow):
 
 
     def play(self):
-        self.timeline.playing = not self.timeline.playing
+        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
+            self.mediaPlayer.pause()
+            self.timeline.playing = False
+        else:
+            self.mediaPlayer.play()
+            self.timeline.playing = True
 
 
     def stop_playing(self):
