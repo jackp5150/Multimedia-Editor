@@ -40,7 +40,7 @@ class VideoEditorWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Video Editor")
-        self.setFixedSize(1200, 800)
+        self.setFixedSize(1200, 900)
         self.setWindowIcon(QIcon('icon.png'))
 
         palette = QPalette()
@@ -82,15 +82,12 @@ class VideoEditorWindow(QMainWindow):
         self.playButton = playButton
         self.mediaPlayer.stateChanged.connect(self.toggle_play_pause_button)
 
-
-
         self.positionSlider = QSlider(Qt.Horizontal, self)
         self.positionSlider.setFixedWidth(300)
         self.positionSlider.sliderMoved.connect(self.setPosition)
 
         self.durationLabel = QLabel(self)
         self.durationLabel.setStyleSheet("color: white")
-
 
         self.timeLabel = QLabel(self)
         self.timeLabel.setStyleSheet("color: white")
@@ -104,39 +101,126 @@ class VideoEditorWindow(QMainWindow):
         hbox_main_controls.addSpacing(10)
         hbox_main_controls.addWidget(self.positionSlider)
 
-
         hbox_controls = QHBoxLayout()
         hbox_controls.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
         hbox_controls.addLayout(hbox_main_controls)
         hbox_controls.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
+        # Styling square buttons
+        square_buttons = [QPushButton(self) for _ in range(5)]
+        for button in square_buttons:
+            button.setFixedSize(40, 40)  # Increase the size of the buttons
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    font: bold 14px;
+                    padding: 6px;
+                    border: none;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+            """)
+        square_buttons_layout = QHBoxLayout()
+        square_buttons_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        for button in square_buttons:
+            button.setFixedSize(30, 30)
+            button.setStyleSheet(
+                'QPushButton {'
+                '    background-color: #3498db;'
+                '    color: white;'
+                '    font: bold 14px;'
+                '    padding: 6px;'
+                '    border: none;'
+                '}'
+                'QPushButton:hover {'
+                '    background-color: #2980b9;'
+                '}'
+            )
+
+
+        # Instantiating plus button and importing it
+        plus_button = QPushButton(self)
+        plus_button.setFixedSize(40, 40)
+        plus_button.setIcon(QIcon("plus_icon.png"))
+        plus_button.setIconSize(QSize(24, 24))
+        plus_button.setStyleSheet(
+            'QPushButton {'
+            '    background-color: #3498db;'
+            '    color: white;'
+            '    font: bold 14px;'
+            '    padding: 6px;'
+            '    border-radius: 20px;'  # Add border-radius for a circular shape
+            '}'
+            'QPushButton:hover {'
+            '    background-color: #2980b9;'
+            '}'
+        )
+
+        # Instantiating plus button
+        hbox_plus_button = QHBoxLayout()
+        hbox_plus_button.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        hbox_plus_button.addWidget(plus_button)
+        hbox_plus_button.insertSpacerItem(0, QSpacerItem(60, 0, QSizePolicy.Fixed, QSizePolicy.Minimum))
+
+        # Instantiating window layout organizer
+        vbox = QVBoxLayout()
+        vbox.addLayout(hbox_controls)
+        vbox.addSpacing(30)
+
+        # Instantiating square buttons
+        hbox_square_buttons = QHBoxLayout()
+        for button in square_buttons:
+            hbox_square_buttons.addWidget(button)
+        hbox_square_buttons.setSpacing(7) 
+        vbox.addLayout(hbox_square_buttons)
+        # vbox.addSpacing(10)
+
+        # # Instantiating timeline
+        # self.timeline = Timeline(self)
+        # self.timeline.setFixedHeight(int(self.height() / 6))
+        # vbox.addWidget(self.timeline, stretch=1)  # Add the QHBoxLayout for the plus button to the QVBoxLayout
+
+        # Creating layout for the media itself
         self.videoWidget = QtMultimediaWidgets.QVideoWidget(self)
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.videoWidget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.videoWidget.setFixedSize(800, 450)
+        self.videoWidget.setFixedSize(1000, 600)  # Increase the size of the videoWidget
 
+        # vbox.addSpacing(10)
+        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
+        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer below hbox_video
         hbox_video = QHBoxLayout()
-        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))  # Add expanding spacer to the left of videoWidget
         hbox_video.addWidget(self.videoWidget)
-        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))  # Add expanding spacer to the right of videoWidget
 
-        vbox = QVBoxLayout()
-        vbox.addLayout(hbox_controls)
-        vbox.addSpacing(10)
+        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
         vbox.addLayout(hbox_video)
+        vbox.addStretch(1)
 
-        central_widget = QWidget()
-        central_widget.setLayout(vbox)
-        self.setCentralWidget(central_widget)
 
+
+        # Adding the plus button
+        vbox.addLayout(hbox_plus_button)
+        vbox.addSpacing(10)
+
+        # Adding the timeline
         self.timeline = Timeline(self)
         self.timeline.setFixedHeight(int(self.height() / 6))
         vbox.addWidget(self.timeline, stretch=1)
 
+        # Connecting everything
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.positionChanged.connect(self.timeline.move_arrow_while_playing)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.stateChanged.connect(self.toggle_play_pause_button)
+
+        # Adding more stuff
+        central_widget = QWidget()
+        central_widget.setLayout(vbox)
+        self.setCentralWidget(central_widget)
 
 
     def toggle_play_pause_button(self):

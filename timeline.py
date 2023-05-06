@@ -113,7 +113,7 @@ class Timeline(QGraphicsView):
             item = QGraphicsPixmapItem(pixmap)
             item.setPos(QPointF(x_offset, 0))
             item.setFlag(QGraphicsItem.ItemIsSelectable, True)
-            item.setFlag(QGraphicsItem.ItemIsMovable, True)
+            item.setFlag(QGraphicsItem.ItemIsMovable, False)  # Change this line
             item.setData(Qt.UserRole, x_offset)
             item.setScale(1.0)
             item.setOpacity(1.0)
