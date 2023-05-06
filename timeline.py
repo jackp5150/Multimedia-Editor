@@ -15,7 +15,7 @@ from PyQt5.QtCore import QTimer
 
 
 class Timeline(QGraphicsView):
-    def __init__(self, video_editor, parent=None):
+    def __init__(self, video_editor, width, parent=None):
         super().__init__(parent)
         self.video_editor = video_editor
         self.playing = False
@@ -32,6 +32,43 @@ class Timeline(QGraphicsView):
         self.setBackgroundBrush(brush)
 
         self.setFrameStyle(QFrame.NoFrame)  # removed the frame around the timeline
+
+        self.initial_blank_frame(width)
+
+    def initial_blank_frame(self, width):
+        width = width
+        height = self.height() / 2
+        border_width = 2  # Adjust this value for the desired border width
+
+        pixmap = QPixmap(width, int(height)).scaled(width, int(height))
+
+
+        # Create a new QPixmap with a white border on the top and bottom edges
+        pixmap_with_border = QPixmap(pixmap.width(), pixmap.height() + border_width * 2)
+        pixmap_with_border.fill(Qt.transparent)
+        painter = QPainter(pixmap_with_border)
+        painter.fillRect(0, 0, pixmap_with_border.width(), border_width, Qt.white)
+        painter.fillRect(0, pixmap_with_border.height() - border_width, pixmap_with_border.width(), border_width, Qt.white)
+        painter.drawPixmap(QPointF(0, border_width), pixmap)
+        painter.end()
+
+        item = QGraphicsPixmapItem(pixmap_with_border)
+        item.setPos(QPointF(0, 0))
+        item.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        item.setFlag(QGraphicsItem.ItemIsMovable, False)  # Change this line
+        item.setScale(1.0)
+        item.setOpacity(1.0)
+        self.scene().addItem(item)
+
+        # Pass the parent object explicitly as an argument to the BlueArrow constructor
+        blue_arrow = BlueArrow(self.parent(), self, None)
+        
+        # Hide the arrow initially
+        blue_arrow.setVisible(False)
+        
+        self.scene().addItem(blue_arrow)  # Update this line
+
+        self.setSceneRect(QRectF(self.scene().itemsBoundingRect()))
 
     def move_arrow(self, dx):
         arrow = [item for item in self.scene().items() if isinstance(item, BlueArrow)][0]
@@ -108,9 +145,21 @@ class Timeline(QGraphicsView):
             return
         frame_width = int((width + frame_count - 1) / frame_count)
         x_offset = 0
+        border_width = 2  # Adjust this value for the desired border width
+
         for frame in frames:
             pixmap = QPixmap.fromImage(frame).scaled(frame_width, int(height))
-            item = QGraphicsPixmapItem(pixmap)
+
+            # Create a new QPixmap with a white border on the top and bottom edges
+            pixmap_with_border = QPixmap(pixmap.width(), pixmap.height() + border_width * 2)
+            pixmap_with_border.fill(Qt.transparent)
+            painter = QPainter(pixmap_with_border)
+            painter.fillRect(0, 0, pixmap_with_border.width(), border_width, Qt.white)
+            painter.fillRect(0, pixmap_with_border.height() - border_width, pixmap_with_border.width(), border_width, Qt.white)
+            painter.drawPixmap(QPointF(0, border_width), pixmap)
+            painter.end()
+
+            item = QGraphicsPixmapItem(pixmap_with_border)
             item.setPos(QPointF(x_offset, 0))
             item.setFlag(QGraphicsItem.ItemIsSelectable, True)
             item.setFlag(QGraphicsItem.ItemIsMovable, False)  # Change this line
@@ -121,5 +170,14 @@ class Timeline(QGraphicsView):
             self.scene().addItem(item)
         blue_arrow = BlueArrow(self.parent().parent(), self, None)
         self.scene().addItem(blue_arrow)  # Update this line
-
+        
+        # Show the arrow when a video is loaded
+        blue_arrow.setVisible(True)
+        
         self.setSceneRect(QRectF(self.scene().itemsBoundingRect()))
+
+
+
+
+
+

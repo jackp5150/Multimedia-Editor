@@ -22,7 +22,7 @@ class VideoEditorWindow(QMainWindow):
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self.playlist = QMediaPlaylist()
         self.mediaPlayer.setPlaylist(self.playlist)
-        self.timeline = Timeline(self)
+        self.timeline = Timeline(self, width=self.width())
         self.initUI()
     
     def generate_frames(self, video_path):
@@ -37,6 +37,41 @@ class VideoEditorWindow(QMainWindow):
                 frames.append(frame)
                 os.remove(file)
         return frames
+
+    def closeEvent(self, event):
+        self.mediaPlayer.stop()
+        super().closeEvent(event)
+
+    def create_initial_timeline(self):
+        self.timeline.initial_blank_frame()
+
+    def create_styled_timeline(self):
+        timeline = Timeline(self)
+        timeline.setFixedHeight(int(self.height() / 6))
+
+        # Add white border to the top and bottom edges
+        timeline.setFrameShape(QFrame.Box)
+        timeline.setLineWidth(1)
+        timeline.setMidLineWidth(0)
+        timeline.setContentsMargins(0, 1, 0, 1)
+        timeline.setStyleSheet("QFrame { border: 1px solid white; }")
+
+        return timeline
+
+
+    def add_timeline(self):
+        new_timeline = Timeline(self)
+        new_timeline.setFixedHeight(int(self.height() / 6))
+
+        # Add white border to the top and bottom edges
+        new_timeline.setFrameShape(QFrame.Box)
+        new_timeline.setLineWidth(1)
+        new_timeline.setMidLineWidth(0)
+        new_timeline.setContentsMargins(0, 1, 0, 1)
+        new_timeline.setStyleSheet("QFrame { border: 1px solid white; }")
+
+        self.vbox.addWidget(new_timeline, stretch=1)
+
 
     def initUI(self):
         self.setWindowTitle("Video Editor")
@@ -122,6 +157,8 @@ class VideoEditorWindow(QMainWindow):
                     background-color: #2980b9;
                 }
             """)
+        for index, button in enumerate(square_buttons):
+            button.setText(str(index + 1))
         square_buttons_layout = QHBoxLayout()
         square_buttons_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
         for button in square_buttons:
@@ -157,6 +194,7 @@ class VideoEditorWindow(QMainWindow):
             '    background-color: #2980b9;'
             '}'
         )
+        plus_button.clicked.connect(self.add_timeline)
 
         # Instantiating plus button
         hbox_plus_button = QHBoxLayout()
@@ -165,16 +203,16 @@ class VideoEditorWindow(QMainWindow):
         hbox_plus_button.insertSpacerItem(0, QSpacerItem(60, 0, QSizePolicy.Fixed, QSizePolicy.Minimum))
 
         # Instantiating window layout organizer
-        vbox = QVBoxLayout()
-        vbox.addLayout(hbox_controls)
-        vbox.addSpacing(30)
+        self.vbox = QVBoxLayout()
+        self.vbox.addLayout(hbox_controls)
+        self.vbox.addSpacing(30)
 
         # Instantiating square buttons
         hbox_square_buttons = QHBoxLayout()
         for button in square_buttons:
             hbox_square_buttons.addWidget(button)
         hbox_square_buttons.setSpacing(7) 
-        vbox.addLayout(hbox_square_buttons)
+        self.vbox.addLayout(hbox_square_buttons)
         # vbox.addSpacing(10)
 
         # # Instantiating timeline
@@ -189,27 +227,27 @@ class VideoEditorWindow(QMainWindow):
         self.videoWidget.setFixedSize(1000, 600)  # Increase the size of the videoWidget
 
         # vbox.addSpacing(10)
-        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
-        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer below hbox_video
+        self.vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
+        self.vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer below hbox_video
         hbox_video = QHBoxLayout()
         hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))  # Add expanding spacer to the left of videoWidget
         hbox_video.addWidget(self.videoWidget)
         hbox_video.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))  # Add expanding spacer to the right of videoWidget
 
-        vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
-        vbox.addLayout(hbox_video)
-        vbox.addStretch(1)
+        self.vbox.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))  # Add expanding spacer above hbox_video
+        self.vbox.addLayout(hbox_video)
+        self.vbox.addStretch(1)
 
 
 
         # Adding the plus button
-        vbox.addLayout(hbox_plus_button)
-        vbox.addSpacing(10)
+        self.vbox.addLayout(hbox_plus_button)
+        self.vbox.addSpacing(10)
 
         # Adding the timeline
-        self.timeline = Timeline(self)
+        self.timeline = Timeline(self, width=self.width())
         self.timeline.setFixedHeight(int(self.height() / 6))
-        vbox.addWidget(self.timeline, stretch=1)
+        self.vbox.addWidget(self.timeline, stretch=1)
 
         # Connecting everything
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
@@ -219,7 +257,7 @@ class VideoEditorWindow(QMainWindow):
 
         # Adding more stuff
         central_widget = QWidget()
-        central_widget.setLayout(vbox)
+        central_widget.setLayout(self.vbox)
         self.setCentralWidget(central_widget)
 
 
